@@ -22,8 +22,6 @@ function Contact() {
             backgroundImage: `url(${ContactBackground})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(8px) brightness(0.7)',
-            WebkitFilter: 'blur(8px) brightness(0.7)',
             transform: 'scale(1.1)',
           }}
           initial={{ opacity: 0 }}

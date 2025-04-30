@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 
 // Import the character image (replace with the actual path to your asset)
-import ForgotPasswordCharacter from '../assets/images/forgot-password-character.png';
+import ForgotPasswordCharacter from '../assets/images/forgot-password-character.jpg';
 
 function ForgotPassword() {
   return (

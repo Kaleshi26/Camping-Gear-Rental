@@ -1,4 +1,3 @@
-// components/Offers.js
 import React from "react";
 import { Link } from "react-router-dom";
 import Imageslider from "../helpers/imageslider";
@@ -21,7 +20,7 @@ const Offers = () => {
       title: "Product 1",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
-      link: "/product/1",
+      link: "/products",
     },
     {
       id: 2,
@@ -29,7 +28,7 @@ const Offers = () => {
       title: "Product 2",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
-      link: "/product/2",
+      link: "/products",
     },
     {
       id: 3,
@@ -37,7 +36,7 @@ const Offers = () => {
       title: "Product 3",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
-      link: "/product/3",
+      link: "/products",
     },
     {
       id: 4,
@@ -45,7 +44,7 @@ const Offers = () => {
       title: "Product 4",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
-      link: "/product/4",
+      link: "/products",
     },
   ];
 
@@ -115,7 +114,7 @@ const Offers = () => {
               </p>
               <div className="mt-4">
                 <Link
-                  to="/camper"
+                  to="/signup"
                   className="bg-white text-[#4A3D2E] border border-[#4A3D2E] py-1.5 px-3 rounded-lg font-semibold hover:bg-[#D4A017] hover:text-white hover:border-[#D4A017] transition duration-300 text-sm md:text-base"
                 >
                   TRY NOW
@@ -144,11 +143,11 @@ const Offers = () => {
               </div>
               <h2 className="text-2xl md:text-3xl font-bold text-[#4A3D2E] mb-4">SOCIAL MEDIA OFFERS</h2>
               <p className="text-gray-600 leading-relaxed text-sm md:text-base text-justify">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero vitae erat. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare.
+                Join the CampEase community on social media and unlock exclusive offers! Share your camping adventures, tag us, and participate in exciting giveaways to win premium gear rentals or discounts. Follow us on Facebook, Instagram, and Twitter to stay updated on the latest promotions and connect with fellow outdoor enthusiasts.
               </p>
               <div className="mt-4">
                 <Link
-                  to="/https://web.facebook.com/?_rdc=1&_rdr"
+                  to="/signin"
                   className="bg-white text-[#4A3D2E] border border-[#4A3D2E] py-1.5 px-3 rounded-lg font-semibold hover:bg-[#D4A017] hover:text-white hover:border-[#D4A017] transition duration-300 text-sm md:text-base"
                 >
                   Try Now
@@ -159,7 +158,7 @@ const Offers = () => {
         </div>
 
         {/* Our Partnerships Section */}
-        <div className="py-6 mt-10 bg-[#FFF9E5] px-4 md:px-6">
+        <div className="py-6 mt-10 bg-[#FFF9E5] px- environment-friendly camping gear rental service.4 md:px-6">
           <h2 className="text-2xl md:text-3xl font-bold text-[#4A3D2E] mb-6 text-center">
             OUR PARTNERSHIPS
           </h2>
@@ -178,11 +177,8 @@ const Offers = () => {
             ))}
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#FFF9E5] rounded-lg p-4">
-            <p className="text-gray-600 leading-relaxed text-sm md:text-base flex-1 text-center sm:text-left text-justifyS">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique.
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique.
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique.
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique.
+            <p className="text-gray-600 leading-relaxed text-sm md:text-base flex-1 text-center sm:text-left text-justify">
+              At CampEase, we collaborate with leading outdoor brands and local businesses to provide high-quality, environment-friendly camping gear. Our partnerships ensure that you have access to the best equipment for your adventures while supporting sustainable practices. Join us in building a community dedicated to responsible camping and unforgettable outdoor experiences.
             </p>
             <Link
               to="/partnership-request"

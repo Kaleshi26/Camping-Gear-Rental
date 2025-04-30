@@ -226,8 +226,6 @@ const Blog = () => {
             backgroundImage: `url(${BlogBackground})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(8px) brightness(0.7)', // Blur and slight dimming for readability
-            WebkitFilter: 'blur(8px) brightness(0.7)', // For browser compatibility
             transform: 'scale(1.1)', // Slight scale to avoid edge gaps
             position: 'absolute',
             top: 0,

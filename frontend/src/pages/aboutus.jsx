@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import heroImage from "../assets/alt.png";
+import { motion } from "framer-motion"; // Added for animations
+import heroImage from "../assets/alt.jpg";
 import storyImage from "../assets/ss.jpg";
 import careimage from "../assets/WECARE.png";
 import outlet from "../assets/out1.png";
@@ -10,27 +11,33 @@ import img2 from "../assets/image8.png";
 import img3 from "../assets/image10.png";
 import img4 from "../assets/image11.png";
 import userAvatar from "../assets/heroimage.png";
+import AboutUsBackground from "../assets/aboutus-background.jpg"; // New background image
 
 const AboutUs = () => {
   return (
     <div className="max-w-7xl mx-auto pt-8">
-      <section
-        className="relative bg-cover bg-center max-w-[1400px] h-[549px] md:h-[400px] sm:h-[300px] mx-auto rounded-2xl shadow-xl overflow-hidden"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      >
-        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-2xl"></div>
-
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <h1 className="text-2xl md:text-5xl text-white font-bold leading-tight tracking-tight text-center">
-            GEAR UP FOR GREAT OUTDOORS
-          </h1>
-        </div>
-
-        <img
-          src={heroImage}
-          alt="hero"
-          className="invisible w-full h-[549px] md:h-[400px] sm:h-[300px] rounded-2xl shadow-xl"
+      {/* Header Section with Full-Width Background */}
+      <section className="relative w-full h-[60vh] overflow-hidden flex items-center justify-center rounded-2xl shadow-xl">
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${AboutUsBackground})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            transform: "scale(1.1)", // Slight scale to avoid edge gaps
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
         />
+        <motion.h1
+          className="relative text-2xl md:text-5xl font-bold text-white text-center px-4 z-10"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        >
+          GEAR UP FOR GREAT OUTDOORS
+        </motion.h1>
       </section>
 
       {/* Story Section */}
@@ -44,7 +51,7 @@ const AboutUs = () => {
               HELLO, WE ARE CAMPEASE
             </h2>
             <p className="text-gray-600 leading-relaxed text-sm md:text-base text-justify">
-              Welcome to our app, where camping adventures meet convenience! We're an outdoor rental service connecting
+              Welcome to our Website, where camping adventures meet convenience! We're an outdoor rental service connecting
               enthusiasts with top-notch gear like tents, sleeping bags, and stoves while empowering equipment owners
               to earn extra income. Our platform replaces outdated manual bookings with a sleek online solution,
               making renting easy, efficient, and hassle-free for all.
