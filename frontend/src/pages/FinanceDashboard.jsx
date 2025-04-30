@@ -3,7 +3,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { FaBars, FaTimes, FaDollarSign, FaSignOutAlt, FaList, FaBell, FaExchangeAlt, FaFileAlt, FaUndo, FaUserCircle, FaCampground, FaWallet, FaFileExport, FaUndoAlt } from 'react-icons/fa';
+import { FaBars, FaTimes, FaDollarSign, FaSignOutAlt, FaList, FaBell, FaExchangeAlt, FaFileAlt, FaUndo, FaUserCircle, FaCampground, FaWallet, FaFileExport, FaUndoAlt, FaChartBar } from 'react-icons/fa';
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 // Import the background image (assumed to be in assets)
 import campingBg from '../assets/camping-bg.jpg'; // Adjust the path if necessary
@@ -16,7 +21,9 @@ function FinanceDashboard() {
   const [records, setRecords] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [dailyReport, setDailyReport] = useState([]);
+  const [monthlyReport, setMonthlyReport] = useState([]);
   const [reportDate, setReportDate] = useState('');
+  const [reportMonth, setReportMonth] = useState('');
   const [type, setType] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -90,6 +97,21 @@ function FinanceDashboard() {
     }
   };
 
+  const handleGenerateMonthlyReport = async () => {
+    if (!reportMonth) {
+      alert('Please select a month');
+      return;
+    }
+
+    try {
+      const response = await api.get(`/finance/monthly-report?month=${reportMonth}`);
+      setMonthlyReport(response.data.transactions);
+    } catch (err) {
+      console.error('Error generating monthly report:', err);
+      alert('Failed to generate report');
+    }
+  };
+
   const handleExportCSV = () => {
     if (dailyReport.length === 0) {
       alert('No data to export');
@@ -114,6 +136,34 @@ function FinanceDashboard() {
     const a = document.createElement('a');
     a.setAttribute('href', url);
     a.setAttribute('download', `daily-report-${reportDate}.csv`);
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportMonthlyCSV = () => {
+    if (monthlyReport.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const headers = ['Customer Name', 'Email', 'Total Amount', 'Payment Date', 'Items'];
+    const csvRows = [
+      headers.join(','),
+      ...monthlyReport.map((transaction) => [
+        transaction.customerName,
+        transaction.customerEmail,
+        transaction.totalAmount,
+        new Date(transaction.paymentDate).toLocaleDateString(),
+        transaction.items.map((item) => `${item.name} ($${item.price} x ${item.quantity})`).join('; '),
+      ].join(',')),
+    ];
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `monthly-report-${reportMonth}.csv`);
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -150,11 +200,53 @@ function FinanceDashboard() {
     { name: 'View Records', section: 'view', icon: <FaList className="text-xl" /> },
     { name: 'Transactions', section: 'transactions', icon: <FaExchangeAlt className="text-xl" /> },
     { name: 'Daily Report', section: 'daily-report', icon: <FaFileAlt className="text-xl" /> },
+    { name: 'Monthly Report', section: 'monthly-report', icon: <FaChartBar className="text-xl" /> },
     { name: 'Refunds', section: 'refunds', icon: <FaUndo className="text-xl" /> },
   ];
 
   // Filter records based on selected type
   const filteredRecords = filterType === 'All' ? records : records.filter((record) => record.type === filterType);
+
+  // Data for the bar chart
+  const chartData = {
+    labels: ['Revenue', 'Expenses'],
+    datasets: [
+      {
+        label: 'Amount (Rs)',
+        data: [
+          monthlyReport.reduce((sum, t) => sum + t.totalAmount, 0),
+          records
+            .filter((r) => r.type === 'Expense' && new Date(r.date).toISOString().startsWith(reportMonth))
+            .reduce((sum, r) => sum + r.amount, 0),
+        ],
+        backgroundColor: ['#2F4F4F', '#8B4513'],
+        borderColor: ['#1A3C34', '#5A2D0C'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: `Financial Summary for ${reportMonth || 'Selected Month'}`,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Amount (Rs)',
+        },
+      },
+    },
+  };
 
   return (
     <div
@@ -212,9 +304,7 @@ function FinanceDashboard() {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 z-10 ${
-          isSidebarOpen ? 'ml-64' : 'ml-16'
-        }`}
+        className={`flex-1 flex flex-col transition-all duration-300 z-10 ${isSidebarOpen ? 'ml-64' : 'ml-16'}`}
       >
         {/* Top Bar with Fade-In Animation */}
         <div className="bg-[#F5F5DC] shadow-lg p-4 flex justify-between items-center animate-fade-in-up">
@@ -399,7 +489,10 @@ function FinanceDashboard() {
                   <FaFileExport className="inline mr-2" /> Generate Report
                 </button>
                 {dailyReport.length > 0 && (
-                  <button onClick={handleExportCSV} className="mt-6 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105">
+                  <button
+                    onClick={handleExportCSV}
+                    className="mt-6 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105"
+                  >
                     Export to CSV
                   </button>
                 )}
@@ -440,6 +533,80 @@ function FinanceDashboard() {
             </div>
           )}
 
+          {/* Monthly Report Section */}
+          {activeSection === 'monthly-report' && (
+            <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
+              <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
+                <FaChartBar className="mr-2 text-[#2F4F4F]" /> Monthly Revenue Summary Report
+              </h2>
+              <div className="flex space-x-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-[#8B4513] mb-2">Select Month</label>
+                  <input
+                    type="month"
+                    value={reportMonth}
+                    onChange={(e) => setReportMonth(e.target.value)}
+                    className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                  />
+                </div>
+                <button onClick={handleGenerateMonthlyReport} className="btn-camping mt-6">
+                  <FaFileExport className="inline mr-2" /> Generate Report
+                </button>
+                {monthlyReport.length > 0 && (
+                  <button
+                    onClick={handleExportMonthlyCSV}
+                    className="mt-6 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105"
+                  >
+                    Export to CSV
+                  </button>
+                )}
+              </div>
+              {monthlyReport.length === 0 ? (
+                <p className="text-gray-600">No transactions for the selected month.</p>
+              ) : (
+                <>
+                  {/* Bar Chart */}
+                  <div className="mb-8">
+                    <Bar data={chartData} options={chartOptions} />
+                  </div>
+                  {/* Transaction List */}
+                  <div className="space-y-4">
+                    {monthlyReport.map((transaction) => (
+                      <div
+                        key={transaction._id}
+                        className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm"
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-gray-800 font-semibold">
+                            Customer: {transaction.customerName}
+                          </p>
+                          <p className="text-gray-600">Email: {transaction.customerEmail}</p>
+                        </div>
+                        <p className="text-gray-600">
+                          Date: {new Date(transaction.paymentDate).toLocaleDateString()}
+                        </p>
+                        <p className="text-gray-600 font-semibold">
+                          Total Income: Rs{transaction.totalAmount.toFixed(2)}
+                        </p>
+                        <div className="mt-2">
+                          <p className="text-gray-700 font-medium">Rented Products:</p>
+                          <ul className="list-disc list-inside text-gray-600">
+                            {transaction.items.map((item, index) => (
+                              <li key={index}>
+                                {item.name} - Rs{item.price} x {item.quantity} = Rs
+                                {(item.price * item.quantity).toFixed(2)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Refunds Section */}
           {activeSection === 'refunds' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
@@ -453,7 +620,10 @@ function FinanceDashboard() {
                   {transactions
                     .filter((transaction) => !transaction.refunded)
                     .map((transaction) => (
-                      <div key={transaction._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <div
+                        key={transaction._id}
+                        className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm"
+                      >
                         <div className="flex justify-between items-center mb-2">
                           <p className="text-gray-800 font-semibold">
                             Customer: {transaction.customerName}

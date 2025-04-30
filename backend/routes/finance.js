@@ -36,6 +36,20 @@ router.post('/records', auth(['finance_manager']), async (req, res) => {
   }
 });
 
+// Delete financial record
+router.delete('/records/:id', auth(['finance_manager']), async (req, res) => {
+  try {
+    const record = await FinancialRecord.findByIdAndDelete(req.params.id);
+    if (!record) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+    res.json({ message: 'Record deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting financial record:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get all transactions
 router.get('/transactions', auth(['finance_manager']), async (req, res) => {
   try {
@@ -75,6 +89,33 @@ router.get('/daily-report', auth(['finance_manager']), async (req, res) => {
   }
 });
 
+// Get monthly revenue summary report
+router.get('/monthly-report', auth(['finance_manager']), async (req, res) => {
+  const { month } = req.query;
+
+  if (!month) {
+    return res.status(400).json({ message: 'Month is required' });
+  }
+
+  try {
+    const [year, monthIndex] = month.split('-').map(Number);
+    const startOfMonth = new Date(year, monthIndex - 1, 1);
+    const endOfMonth = new Date(year, monthIndex, 0, 23, 59, 59, 999);
+
+    const transactions = await Transaction.find({
+      paymentDate: {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      },
+    }).sort({ paymentDate: -1 });
+
+    res.json({ transactions });
+  } catch (err) {
+    console.error('Error generating monthly report:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Process refund
 router.post('/refund/:transactionId', auth(['finance_manager']), async (req, res) => {
   const { transactionId } = req.params;
@@ -107,9 +148,10 @@ router.post('/refund/:transactionId', auth(['finance_manager']), async (req, res
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const payment = user.payments.find((p) =>
-      p.paymentDate.toISOString() === transaction.paymentDate.toISOString() &&
-      p.totalAmount === transaction.totalAmount
+    const payment = user.payments.find(
+      (p) =>
+        p.paymentDate.toISOString() === transaction.paymentDate.toISOString() &&
+        p.totalAmount === transaction.totalAmount
     );
     if (payment) {
       payment.refunded = true;
