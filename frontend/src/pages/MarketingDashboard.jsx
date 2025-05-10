@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { FaBars, FaTimes, FaBullhorn, FaSignOutAlt, FaList, FaBell, FaCampground, FaUserCircle } from 'react-icons/fa';
+import { FaBars, FaTimes, FaBullhorn, FaSignOutAlt, FaList, FaBell, FaCampground, FaUserCircle, FaStar } from 'react-icons/fa';
 
 // Import the background image (assumed to be in assets)
-import campingBg from '../assets/camping-bg4.jpg'; // Adjust the path if necessary
+import campingBg from '../assets/camping-bg4.jpg';
 
 function MarketingDashboard() {
   const { user, logout } = useAuth();
@@ -14,6 +14,7 @@ function MarketingDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState('create');
   const [campaigns, setCampaigns] = useState([]);
+  const [discountUsers, setDiscountUsers] = useState([]); // Added: Track users with discounts
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [details, setDetails] = useState('');
@@ -28,7 +29,18 @@ function MarketingDashboard() {
         console.error('Error fetching campaigns:', err);
       }
     };
+
+    const fetchDiscountUsers = async () => {
+      try {
+        const response = await api.get('/user/discounts');
+        setDiscountUsers(response.data);
+      } catch (err) {
+        console.error('Error fetching discount users:', err);
+      }
+    };
+
     fetchCampaigns();
+    fetchDiscountUsers();
   }, []);
 
   const handleCreateCampaign = async (e) => {
@@ -73,19 +85,18 @@ function MarketingDashboard() {
   const navLinks = [
     { name: 'Create Campaign', section: 'create', icon: <FaBullhorn className="text-xl" /> },
     { name: 'View Campaigns', section: 'view', icon: <FaList className="text-xl" /> },
+    { name: 'Discounts', section: 'discounts', icon: <FaStar className="text-xl" /> }, // Added Discounts section
   ];
 
   return (
     <div
       className="flex min-h-screen bg-cover bg-center relative"
       style={{
-        backgroundImage: `url(${campingBg})`, // Camping background image
+        backgroundImage: `url(${campingBg})`,
       }}
     >
-      {/* Overlay for readability */}
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
-      {/* Sidebar with Transparency and Slide-In Animation */}
       <div
         className={`fixed top-0 left-0 h-full bg-[#2F4F4F]/80 backdrop-blur-md text-white transition-all duration-300 z-20 animate-slide-in-left ${
           isSidebarOpen ? 'w-64' : 'w-16'
@@ -129,13 +140,11 @@ function MarketingDashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div
         className={`flex-1 flex flex-col transition-all duration-300 z-10 ${
           isSidebarOpen ? 'ml-64' : 'ml-16'
         }`}
       >
-        {/* Top Bar with Fade-In Animation */}
         <div className="bg-[#F5F5DC] shadow-lg p-4 flex justify-between items-center animate-fade-in-up">
           <div className="flex items-center space-x-2">
             <FaCampground className="text-2xl text-[#2F4F4F]" />
@@ -158,9 +167,7 @@ function MarketingDashboard() {
           </div>
         </div>
 
-        {/* Dashboard Content */}
         <div className="flex-1 p-6">
-          {/* Create Campaign Section */}
           {activeSection === 'create' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
@@ -216,7 +223,6 @@ function MarketingDashboard() {
             </div>
           )}
 
-          {/* View Campaigns Section */}
           {activeSection === 'view' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
@@ -244,9 +250,39 @@ function MarketingDashboard() {
               )}
             </div>
           )}
+
+          {activeSection === 'discounts' && (
+            <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
+              <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
+                <FaStar className="mr-2 text-[#2F4F4F]" /> Users with Discounts
+              </h2>
+              {discountUsers.length === 0 ? (
+                <p className="text-gray-600">No users have received discounts yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {discountUsers.map((user, index) => (
+                    <div key={index} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <p className="text-gray-800 font-semibold">User: {user.name}</p>
+                      <p className="text-gray-600">Email: {user.email}</p>
+                      <p className="text-gray-600">Loyalty Points: {user.loyaltyPoints}</p>
+                      <h4 className="text-gray-800 font-semibold mt-2">Discounts Applied:</h4>
+                      {user.discounts.map((discount, idx) => (
+                        <div key={idx} className="ml-4 mt-2">
+                          <p className="text-gray-600">Discount: {discount.discountApplied}%</p>
+                          <p className="text-gray-600">Total Amount: Rs{discount.totalAmount.toFixed(2)}</p>
+                          <p className="text-gray-600">
+                            Date: {new Date(discount.paymentDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Minimal Footer */}
         <footer className="bg-[#2F4F4F]/80 backdrop-blur-md text-white p-4 text-center">
           <p>© 2025 CampEase. All rights reserved.</p>
         </footer>

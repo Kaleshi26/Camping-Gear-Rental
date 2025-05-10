@@ -1,12 +1,13 @@
+// frontend/src/pages/Profile.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { motion } from 'framer-motion';
-import { FaUserCircle, FaEdit, FaCampground, FaSignOutAlt } from 'react-icons/fa';
+import { FaUserCircle, FaEdit, FaCampground, FaSignOutAlt, FaStar } from 'react-icons/fa';
 
 // Import the background image (assumed to be in assets)
-import campingBg from '../assets/camping-bg6.jpg'; // Adjust the path if necessary
+import campingBg from '../assets/camping-bg6.jpg';
 
 function Profile() {
   const { isAuthenticated, role, logout, loading: authLoading } = useAuth();
@@ -77,12 +78,14 @@ function Profile() {
   return (
     <div className="min-h-screen bg-[#FFF9E5] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
-        {/* Sidebar */}
         <aside className="md:w-1/4 bg-[#F5F5DC] rounded-lg shadow-lg p-6">
           <div className="flex flex-col items-center mb-6">
             <FaUserCircle className="text-6xl text-[#2F4F4F] mb-4" />
             <h2 className="text-2xl font-bold text-[#8B4513]">{profile.name}</h2>
             <p className="text-[#8B4513]">Happy Camper</p>
+            <p className="text-[#8B4513] mt-2 flex items-center">
+              <FaStar className="mr-2 text-[#1A3C34]" /> Loyalty Points: {profile.loyaltyPoints}
+            </p>
           </div>
           <nav className="space-y-4">
             <Link
@@ -113,9 +116,7 @@ function Profile() {
           </button>
         </aside>
 
-        {/* Main Content */}
         <main className="md:w-3/4 space-y-8">
-          {/* Personal Information Section */}
           <motion.section
             id="personal-info"
             variants={cardVariants}
@@ -145,7 +146,6 @@ function Profile() {
             </div>
           </motion.section>
 
-          {/* Rented Products Section */}
           <motion.section
             id="rented-products"
             variants={cardVariants}
@@ -191,7 +191,6 @@ function Profile() {
             )}
           </motion.section>
 
-          {/* My Payments Section */}
           <motion.section
             id="payments"
             variants={cardVariants}
@@ -219,6 +218,11 @@ function Profile() {
                         Total: Rs{payment.totalAmount.toFixed(2)}
                       </p>
                     </div>
+                    {payment.discountApplied > 0 && (
+                      <p className="text-green-600 mb-4">
+                        Discount Applied: {payment.discountApplied}% (Loyalty Discount)
+                      </p>
+                    )}
                     {payment.refunded && (
                       <p className="text-red-500 mb-4">
                         Refunded on {new Date(payment.refundDate).toLocaleDateString()} - Reason: {payment.refundReason}

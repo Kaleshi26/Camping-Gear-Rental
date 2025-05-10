@@ -14,8 +14,17 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     const storedRole = localStorage.getItem('role');
     if (token && storedRole) {
-      setUser({ role: storedRole });
+      setUser({ id: localStorage.getItem('userId'), role: storedRole }); // Added user ID
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Fetch user ID if not stored
+      if (!localStorage.getItem('userId')) {
+        api.get('/user/profile').then(response => {
+          localStorage.setItem('userId', response.data._id);
+          setUser({ id: response.data._id, role: storedRole });
+        }).catch(err => {
+          console.error('Error fetching user ID:', err);
+        });
+      }
     }
     setLoading(false);
   }, []);
@@ -25,11 +34,12 @@ export function AuthProvider({ children }) {
       console.log('Login request:', { email, password });
       const response = await api.post('/auth/signin', { email, password });
       console.log('Login response:', response.data);
-      const { token, role } = response.data;
+      const { token, role, userId } = response.data; // Expect userId from backend
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
+      localStorage.setItem('userId', userId); // Store userId
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser({ role });
+      setUser({ id: userId, role });
       setLoading(false);
       return role;
     } catch (err) {
@@ -43,11 +53,12 @@ export function AuthProvider({ children }) {
       console.log('Signup request:', { name, email, password });
       const response = await api.post('/auth/signup', { name, email, password });
       console.log('Signup response:', response.data);
-      const { token, role } = response.data;
+      const { token, role, userId } = response.data; // Expect userId from backend
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
+      localStorage.setItem('userId', userId); // Store userId
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser({ role });
+      setUser({ id: userId, role });
       setLoading(false);
       return true;
     } catch (err) {
@@ -59,6 +70,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('userId'); // Clear userId
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setLoading(false);

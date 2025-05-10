@@ -51,7 +51,7 @@ router.post('/signup', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.status(201).json({ token, role: user.role });
+    res.status(201).json({ token, role: user.role, userId: user._id }); // Added userId to response
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -89,7 +89,7 @@ router.post('/signin', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.json({ token, role: user.role });
+    res.json({ token, role: user.role, userId: user._id }); // Added userId to response
   } catch (err) {
     console.error('Signin error:', err);
     res.status(500).json({ message: 'Server error' });

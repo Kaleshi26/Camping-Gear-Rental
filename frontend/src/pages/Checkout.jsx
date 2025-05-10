@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { FaCampground, FaFire, FaTimes } from 'react-icons/fa';
 
 // Import the background image (assumed to be in assets)
-import campingBg from '../assets/camping-bg9.jpg'; // Adjust the path if necessary
+import campingBg from '../assets/camping-bg9.jpg';
 
 function Checkout() {
   const { user, loading: authLoading } = useAuth();
@@ -19,8 +19,9 @@ function Checkout() {
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
-  const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0); // Added: Track loyalty-based discount
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0); // Added: Track loyalty points
   const [shippingMethod, setShippingMethod] = useState('Standard');
   const [shippingCost, setShippingCost] = useState(0);
   const [processing, setProcessing] = useState(false);
@@ -45,6 +46,26 @@ function Checkout() {
     if (!user) {
       navigate('/signin');
     }
+
+    // Fetch loyalty points
+    const fetchLoyaltyPoints = async () => {
+      try {
+        const response = await api.get('/user/profile');
+        const points = response.data.loyaltyPoints || 0;
+        setLoyaltyPoints(points);
+        // Calculate discount based on loyalty points
+        if (points >= 10) {
+          setLoyaltyDiscount(15);
+          setDiscount(15);
+        } else if (points >= 5) {
+          setLoyaltyDiscount(10);
+          setDiscount(10);
+        }
+      } catch (err) {
+        console.error('Error fetching loyalty points:', err);
+      }
+    };
+    fetchLoyaltyPoints();
   }, [location, authLoading, navigate, user]);
 
   const calculateSubtotal = () => {
@@ -55,15 +76,6 @@ function Checkout() {
     const subtotal = calculateSubtotal();
     const discountedTotal = subtotal - (subtotal * discount) / 100;
     return discountedTotal + shippingCost;
-  };
-
-  const handlePromoCode = () => {
-    if (promoCode.toUpperCase() === 'CAMP10') {
-      setDiscount(10);
-    } else {
-      setDiscount(0);
-      alert('Invalid promo code');
-    }
   };
 
   const handleShippingMethod = (method) => {
@@ -94,7 +106,8 @@ function Checkout() {
     try {
       const response = await api.post('/payment/create-checkout-session', {
         cartItems: cartItems,
-        userId: user.id || 'guest', // Replace with actual user ID if available
+        userId: user.id,
+        discount: discount, // Pass the discount to backend
       });
 
       const sessionId = response.data.id;
@@ -158,11 +171,9 @@ function Checkout() {
       className="min-h-screen bg-cover bg-center relative py-8 px-4 sm:px-6 lg:px-8"
       style={{ backgroundImage: `url(${campingBg})` }}
     >
-      {/* Overlay for readability */}
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
       <div className="max-w-5xl mx-auto relative z-10">
-        {/* Checkout Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -181,7 +192,6 @@ function Checkout() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          {/* Shipping Address and Payment Method */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -247,7 +257,6 @@ function Checkout() {
                 </div>
               </div>
 
-              {/* Payment Method Selection */}
               <div className="mt-6">
                 <h3 className="text-xl sm:text-2xl font-semibold text-[#8B4513] mb-4 flex items-center">
                   <FaCampground className="mr-2 text-[#2F4F4F] text-lg sm:text-xl" /> Payment Method
@@ -268,7 +277,6 @@ function Checkout() {
                 </div>
               </div>
 
-              {/* Shipping Method Selection */}
               <div className="mt-6">
                 <h3 className="text-xl sm:text-2xl font-semibold text-[#8B4513] mb-4 flex items-center">
                   <FaCampground className="mr-2 text-[#2F4F4F] text-lg sm:text-xl" /> Shipping Method
@@ -301,7 +309,6 @@ function Checkout() {
             </form>
           </motion.div>
 
-          {/* Order Summary */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -356,25 +363,11 @@ function Checkout() {
                   <span>Rs{calculateTotal().toFixed(2)}</span>
                 </div>
               </div>
-              {/* Promo Code Input */}
-              <div className="mt-4">
-                <h4 className="text-sm sm:text-base font-semibold text-[#8B4513] mb-2">Promo Code</h4>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    placeholder="Enter promo code (e.g., CAMP10)"
-                    className="flex-1 px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300 text-sm sm:text-base"
-                  />
-                  <button
-                    onClick={handlePromoCode}
-                    className="bg-[#8B4513] text-white px-4 py-2 rounded-lg hover:bg-[#6F3A0F] transition-all duration-300 text-sm sm:text-base"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
+              {loyaltyDiscount > 0 && (
+                <p className="text-green-600 text-sm mt-2">
+                  Loyalty Discount Applied: {loyaltyDiscount}% (Based on {loyaltyPoints} points)
+                </p>
+              )}
               <button
                 onClick={handleCheckout}
                 disabled={processing || !stripe}
@@ -387,7 +380,6 @@ function Checkout() {
           </motion.div>
         </div>
 
-        {/* Minimal Footer */}
         <footer className="bg-[#2F4F4F]/80 backdrop-blur-md text-white p-4 text-center mt-8">
           <p className="text-sm sm:text-base">© 2025 CampEase. All rights reserved.</p>
         </footer>

@@ -71,11 +71,13 @@ const userSchema = new mongoose.Schema(
           },
         ],
         paymentDate: { type: Date, default: Date.now },
-        refunded: { type: Boolean, default: false }, // Added
-        refundReason: { type: String, default: '' }, // Added
-        refundDate: { type: Date, default: null }, // Added
+        refunded: { type: Boolean, default: false },
+        refundReason: { type: String, default: '' },
+        refundDate: { type: Date, default: null },
+        discountApplied: { type: Number, default: 0 }, // Added: Track discount percentage applied
       },
     ],
+    loyaltyPoints: { type: Number, default: 0 }, // Added: Track loyalty points
   },
   { timestamps: true }
 );

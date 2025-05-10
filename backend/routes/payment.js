@@ -14,7 +14,7 @@ router.post('/create-checkout-session', auth(['customer']), async (req, res) => 
   }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-  const { cartItems, userId } = req.body;
+  const { cartItems, userId, discount } = req.body; // Added discount to request body
 
   try {
     const lineItems = cartItems.map((item) => ({
@@ -36,6 +36,7 @@ router.post('/create-checkout-session', auth(['customer']), async (req, res) => 
       cancel_url: 'http://localhost:5173/cart',
       metadata: {
         userId: userId,
+        discount: discount.toString(), // Pass discount as metadata
       },
     });
 
@@ -80,7 +81,17 @@ router.post('/confirm-payment', auth(['customer']), async (req, res) => {
     }
 
     // Calculate total amount
-    const totalAmount = cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
+    let totalAmount = cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
+
+    // Apply discount if it exists in session metadata
+    const discount = session.metadata.discount ? parseFloat(session.metadata.discount) : 0;
+    if (discount > 0) {
+      totalAmount = totalAmount - (totalAmount * discount) / 100;
+    }
+
+    // Calculate loyalty points (Rs 500 = 1 point)
+    const loyaltyPointsEarned = Math.floor(totalAmount / 500);
+    user.loyaltyPoints += loyaltyPointsEarned;
 
     // Save payment details to User model
     const payment = {
@@ -93,9 +104,10 @@ router.post('/confirm-payment', auth(['customer']), async (req, res) => {
         image: item.image,
       })),
       paymentDate: new Date(),
-      refunded: false, // Ensure refund fields are set
+      refunded: false,
       refundReason: '',
       refundDate: null,
+      discountApplied: discount, // Track the discount applied
     };
     user.payments.push(payment);
 
@@ -110,7 +122,7 @@ router.post('/confirm-payment', auth(['customer']), async (req, res) => {
     })));
 
     // Clear the cart
-    user.cart = []; // This line should clear the cart
+    user.cart = [];
     await user.save();
 
     // Verify the cart is cleared
@@ -134,7 +146,7 @@ router.post('/confirm-payment', auth(['customer']), async (req, res) => {
         image: item.image,
       })),
       paymentDate: new Date(),
-      refunded: false, // Ensure refund fields are set
+      refunded: false,
       refundReason: '',
       refundDate: null,
     });
