@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { FaBars, FaTimes, FaShoppingCart, FaSignOutAlt, FaList, FaBell, FaCampground, FaUserCircle, FaTrash } from 'react-icons/fa';
+import { FaBars, FaTimes, FaShoppingCart, FaSignOutAlt, FaList, FaBell, FaCampground, FaUserCircle, FaTrash, FaChartBar, FaSearch, FaBox } from 'react-icons/fa';
 
 // Import the background image (assumed to be in assets)
 import campingBg from '../assets/camping-bg5.jpg'; // Adjust the path if necessary
@@ -21,6 +21,19 @@ function RentalDashboard() {
   const [status, setStatus] = useState('Pending');
   // New state for filtering rentals by status
   const [filterStatus, setFilterStatus] = useState('All');
+  // New state for search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  // New state for bulk status update
+  const [selectedRentals, setSelectedRentals] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState('Pending');
+  // New state for gear rentals
+  const [gearRentals, setGearRentals] = useState([]);
+  const [gearCustomerId, setGearCustomerId] = useState('');
+  const [productId, setProductId] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [gearRentalDate, setGearRentalDate] = useState('');
+  const [gearReturnDate, setGearReturnDate] = useState('');
+  const [gearStatus, setGearStatus] = useState('Pending');
 
   useEffect(() => {
     const fetchRentals = async () => {
@@ -31,7 +44,16 @@ function RentalDashboard() {
         console.error('Error fetching rentals:', err);
       }
     };
+    const fetchGearRentals = async () => {
+      try {
+        const response = await api.get('/gear-rentals');
+        setGearRentals(response.data);
+      } catch (err) {
+        console.error('Error fetching gear rentals:', err);
+      }
+    };
     fetchRentals();
+    fetchGearRentals();
   }, []);
 
   const handleCreateRental = async (e) => {
@@ -76,6 +98,30 @@ function RentalDashboard() {
     }
   };
 
+  const handleCreateGearRental = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/gear-rentals', {
+        customerId: gearCustomerId,
+        productId,
+        quantity: Number(quantity),
+        rentalDate: gearRentalDate,
+        returnDate: gearReturnDate,
+        status: gearStatus,
+      });
+      const response = await api.get('/gear-rentals');
+      setGearRentals(response.data);
+      setGearCustomerId('');
+      setProductId('');
+      setQuantity('');
+      setGearRentalDate('');
+      setGearReturnDate('');
+      setGearStatus('Pending');
+    } catch (err) {
+      console.error('Error creating gear rental:', err);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/signin');
@@ -88,9 +134,92 @@ function RentalDashboard() {
   // Filter rentals based on the selected status
   const filteredRentals = filterStatus === 'All' ? rentals : rentals.filter(rental => rental.status === filterStatus);
 
+  // New function to pre-fill the form with sample data
+  const handlePrefillForm = () => {
+    setCustomerId('CUST123');
+    setTotalPrice('1500');
+    setRentalDate(new Date().toISOString().split('T')[0]); // Today's date
+    setReturnDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // 7 days from today
+    setStatus('Pending');
+  };
+
+  // New function to download rentals as CSV
+  const handleDownloadCSV = () => {
+    const csv = [
+      ['Customer ID', 'Total Price', 'Status', 'Rental Date', 'Return Date'], // Header row
+      ...filteredRentals.map(rental => [
+        rental.customerId,
+        `Rs${rental.totalPrice}`,
+        rental.status,
+        new Date(rental.rentalDate).toLocaleDateString(),
+        new Date(rental.returnDate).toLocaleDateString(),
+      ]),
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rental_orders.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // New function to handle bulk status update
+  const handleBulkStatusUpdate = async () => {
+    if (selectedRentals.length === 0) {
+      alert('Please select at least one rental to update.');
+      return;
+    }
+    try {
+      await Promise.all(
+        selectedRentals.map(rentalId =>
+          api.put(`/rentals/${rentalId}`, { status: bulkStatus })
+        )
+      );
+      const response = await api.get('/rentals');
+      setRentals(response.data);
+      setSelectedRentals([]); // Clear selection after update
+    } catch (err) {
+      console.error('Error bulk updating rental status:', err);
+    }
+  };
+
+  // New function to toggle rental selection for bulk update
+  const toggleRentalSelection = (rentalId) => {
+    setSelectedRentals(prev =>
+      prev.includes(rentalId)
+        ? prev.filter(id => id !== rentalId)
+        : [...prev, rentalId]
+    );
+  };
+
+  // New function to calculate rental summary
+  const getRentalSummary = () => {
+    const totalRentals = rentals.length;
+    const statusBreakdown = {
+      Pending: rentals.filter(r => r.status === 'Pending').length,
+      Approved: rentals.filter(r => r.status === 'Approved').length,
+      Rejected: rentals.filter(r => r.status === 'Rejected').length,
+      Returned: rentals.filter(r => r.status === 'Returned').length,
+    };
+    const totalRevenue = rentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
+
+    return { totalRentals, statusBreakdown, totalRevenue };
+  };
+
+  // Search functionality for rentals
+  const searchedRentals = searchQuery
+    ? filteredRentals.filter(rental =>
+        rental.customerId.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : filteredRentals;
+
   const navLinks = [
-    { name: 'Manage Rentals', section: 'manage', icon: <FaShoppingCart className="text-xl" /> },
-    { name: 'View Rentals', section: 'view', icon: <FaList className="text-xl" /> },
+    { name: 'Manage reservation', section: 'manage', icon: <FaShoppingCart className="text-xl" /> },
+    { name: 'View reservation', section: 'view', icon: <FaList className="text-xl" /> },
+    { name: 'Create Gear Rental', section: 'gear', icon: <FaBox className="text-xl" /> },
+    { name: 'Summary', section: 'summary', icon: <FaChartBar className="text-xl" /> },
   ];
 
   return (
@@ -113,7 +242,7 @@ function RentalDashboard() {
           {isSidebarOpen && (
             <div className="flex items-center space-x-2">
               <FaCampground className="text-3xl text-[#F5F5DC]" />
-              <span className="text-xl font-bold tracking-wide">Rentals</span>
+              <span className="text-xl font-bold tracking-wide">reservation</span>
             </div>
           )}
           <button onClick={toggleSidebar} className="text-white focus:outline-none">
@@ -182,11 +311,11 @@ function RentalDashboard() {
           {activeSection === 'manage' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
-                <FaShoppingCart className="mr-2 text-[#2F4F4F]" /> Manage Rental Orders
+                <FaShoppingCart className="mr-2 text-[#2F4F4F]" /> Manage reservation Orders
               </h2>
               {/* Form to Create a New Rental */}
               <div className="mb-8">
-                <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Create New Rental</h3>
+                <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Create New reservation</h3>
                 <form onSubmit={handleCreateRental} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-[#8B4513] mb-2">Customer ID</label>
@@ -209,7 +338,7 @@ function RentalDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Rental Date</label>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">reservation Date</label>
                     <input
                       type="date"
                       value={rentalDate}
@@ -242,14 +371,23 @@ function RentalDashboard() {
                       <option value="Returned">Returned</option>
                     </select>
                   </div>
-                  <button type="submit" className="btn-camping w-full">
-                    Create Rental
-                  </button>
+                  <div className="flex space-x-2">
+                    <button type="submit" className="btn-camping flex-1">
+                      Create reservation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrefillForm}
+                      className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 shadow-md"
+                    >
+                      Pre-fill Form
+                    </button>
+                  </div>
                 </form>
               </div>
 
               {/* Existing Rentals List with Filter */}
-              <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Existing Rental Orders</h3>
+              <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Existing reservation Orders</h3>
               {/* Add Filter Dropdown */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-[#8B4513] mb-2">Filter by Status</label>
@@ -265,13 +403,43 @@ function RentalDashboard() {
                   <option value="Returned">Returned</option>
                 </select>
               </div>
+              {/* Bulk Status Update Section */}
+              <div className="mb-4">
+                <h4 className="text-md font-semibold text-[#8B4513] mb-2">Bulk Update Status</h4>
+                <div className="flex space-x-2">
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value)}
+                    className="w-full sm:w-1/4 px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Returned">Returned</option>
+                  </select>
+                  <button
+                    onClick={handleBulkStatusUpdate}
+                    className="bg-[#2F4F4F] text-white px-4 py-2 rounded-lg hover:bg-[#1A3C34] transition-all duration-300 transform hover:scale-105 shadow-md"
+                  >
+                    Apply to Selected
+                  </button>
+                </div>
+              </div>
               {filteredRentals.length === 0 ? (
-                <p className="text-gray-600">No rental orders available for this status.</p>
+                <p className="text-gray-600">No reservation orders available for this status.</p>
               ) : (
                 <div className="space-y-4">
                   {filteredRentals.map((rental) => (
                     <div key={rental._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
-                      <p className="text-gray-800 font-semibold">Customer: {rental.customerId}</p>
+                      <div className="flex items-center mb-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedRentals.includes(rental._id)}
+                          onChange={() => toggleRentalSelection(rental._id)}
+                          className="mr-2"
+                        />
+                        <p className="text-gray-800 font-semibold">Customer: {rental.customerId}</p>
+                      </div>
                       <p className="text-gray-600">Total Price: Rs{rental.totalPrice}</p>
                       <p className="text-gray-600">Status: {rental.status}</p>
                       <p className="text-gray-600">Rental Date: {new Date(rental.rentalDate).toLocaleDateString()}</p>
@@ -287,7 +455,7 @@ function RentalDashboard() {
                             </button>
                             <button
                               onClick={() => handleUpdateStatus(rental._id, 'Rejected')}
-                              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-300 transform hover:scale-105 shadow-md"
+                              className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-all duration-300 transform hover:scale-105 shadow-md"
                             >
                               Reject
                             </button>
@@ -321,6 +489,20 @@ function RentalDashboard() {
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
                 <FaList className="mr-2 text-[#2F4F4F]" /> Rental Orders
               </h2>
+              {/* Add Search Bar */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-[#8B4513] mb-2">Search by Customer ID</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Enter Customer ID..."
+                    className="w-full sm:w-1/4 px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                  />
+                  <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#8B4513]" />
+                </div>
+              </div>
               {/* Add Filter Dropdown */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-[#8B4513] mb-2">Filter by Status</label>
@@ -336,11 +518,11 @@ function RentalDashboard() {
                   <option value="Returned">Returned</option>
                 </select>
               </div>
-              {filteredRentals.length === 0 ? (
-                <p className="text-gray-600">No rental orders available for this status.</p>
+              {searchedRentals.length === 0 ? (
+                <p className="text-gray-600">No rental orders available for this status or search query.</p>
               ) : (
                 <div className="space-y-4">
-                  {filteredRentals.map((rental) => (
+                  {searchedRentals.map((rental) => (
                     <div key={rental._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
                       <p className="text-gray-800 font-semibold">Customer: {rental.customerId}</p>
                       <p className="text-gray-600">Total Price: Rs{rental.totalPrice}</p>
@@ -357,8 +539,136 @@ function RentalDashboard() {
                       </div>
                     </div>
                   ))}
+                  <button
+                    onClick={handleDownloadCSV}
+                    className="mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 shadow-md"
+                  >
+                    Download CSV
+                  </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Create Gear Rental Section */}
+          {activeSection === 'gear' && (
+            <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
+              <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
+                <FaBox className="mr-2 text-[#2F4F4F]" /> Create Gear Rental
+              </h2>
+              {/* Form to Create a New Gear Rental */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Create New Gear Rental</h3>
+                <form onSubmit={handleCreateGearRental} className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Customer ID</label>
+                    <input
+                      type="text"
+                      value={gearCustomerId}
+                      onChange={(e) => setGearCustomerId(e.target.value)}
+                      className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Product ID</label>
+                    <input
+                      type="text"
+                      value={productId}
+                      onChange={(e) => setProductId(e.target.value)}
+                      className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Quantity</label>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      min="1"
+                      className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Rental Date</label>
+                    <input
+                      type="date"
+                      value={gearRentalDate}
+                      onChange={(e) => setGearRentalDate(e.target.value)}
+                      className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Return Date</label>
+                    <input
+                      type="date"
+                      value={gearReturnDate}
+                      onChange={(e) => setGearReturnDate(e.target.value)}
+                      className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8B4513] mb-2">Status</label>
+                    <select
+                      value={gearStatus}
+                      onChange={(e) => setGearStatus(e.target.value)}
+                      className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                      required
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                      <option value="Returned">Returned</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="btn-camping w-full">
+                    Create Gear Rental
+                  </button>
+                </form>
+              </div>
+
+              {/* Existing Gear Rentals List */}
+              <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Existing Gear Rentals</h3>
+              {gearRentals.length === 0 ? (
+                <p className="text-gray-600">No gear rentals available.</p>
+              ) : (
+                <div className="space-y-4">
+                  {gearRentals.map((rental) => (
+                    <div key={rental._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <p className="text-gray-800 font-semibold">Customer: {rental.customerId}</p>
+                      <p className="text-gray-600">Product ID: {rental.productId}</p>
+                      <p className="text-gray-600">Quantity: {rental.quantity}</p>
+                      <p className="text-gray-600">Status: {rental.status}</p>
+                      <p className="text-gray-600">Rental Date: {new Date(rental.rentalDate).toLocaleDateString()}</p>
+                      <p className="text-gray-600">Return Date: {new Date(rental.returnDate).toLocaleDateString()}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Summary Section */}
+          {activeSection === 'summary' && (
+            <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
+              <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
+                <FaChartBar className="mr-2 text-[#2F4F4F]" /> Rental Summary
+              </h2>
+              <div className="space-y-4">
+                <div className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                  <p className="text-gray-800 font-semibold">Total Rentals: {getRentalSummary().totalRentals}</p>
+                  <p className="text-gray-600">Total Revenue: Rs{getRentalSummary().totalRevenue.toFixed(2)}</p>
+                  <h4 className="text-gray-800 font-semibold mt-2">Status Breakdown:</h4>
+                  <p className="text-gray-600">Pending: {getRentalSummary().statusBreakdown.Pending}</p>
+                  <p className="text-gray-600">Approved: {getRentalSummary().statusBreakdown.Approved}</p>
+                  <p className="text-gray-600">Rejected: {getRentalSummary().statusBreakdown.Rejected}</p>
+                  <p className="text-gray-600">Returned: {getRentalSummary().statusBreakdown.Returned}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
