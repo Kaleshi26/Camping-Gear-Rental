@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../utils/api"; // Import api utility for HTTP requests
+import { useAuth } from "../context/AuthContext"; // Import useAuth to get user info
 import backgroundImage from "../assets/bgf.jpg"; // Import your image
 
 const PartnershipForm = () => {
+  const { user } = useAuth(); // Get user context to access email
   const [formData, setFormData] = useState({
     title: "",
     contactNumber: "",
@@ -10,20 +13,36 @@ const PartnershipForm = () => {
     message: "",
   });
 
+  // State to manage submission status
+  const [submissionStatus, setSubmissionStatus] = useState(null);
+  const [error, setError] = useState(null);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    setFormData({
-      title: "",
-      contactNumber: "",
-      partnershipType: "",
-      message: "",
-    });
+    setSubmissionStatus(null);
+    setError(null);
+
+    try {
+      const response = await api.post('/partnership/submit', {
+        ...formData,
+        userEmail: user?.email || null, // Include user email if authenticated
+      });
+      setSubmissionStatus(response.data.message);
+      // Reset form after successful submission
+      setFormData({
+        title: "",
+        contactNumber: "",
+        partnershipType: "",
+        message: "",
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to submit the partnership request');
+    }
   };
 
   return (
@@ -114,8 +133,8 @@ const PartnershipForm = () => {
             />
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-center gap-4">
+          {/* Submit Button and Feedback */}
+          <div className="flex justify-center gap-4 mb-6"> {/* Added mb-6 for spacing */}
             <button
               type="submit"
               className="bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition duration-300"
@@ -129,6 +148,14 @@ const PartnershipForm = () => {
               Cancel
             </Link>
           </div>
+
+          {/* Feedback Message (moved below buttons with spacing) */}
+          {submissionStatus && (
+            <p className="text-green-600 mt-4 text-center">{submissionStatus}</p>
+          )}
+          {error && (
+            <p className="text-red-600 mt-4 text-center">{error}</p>
+          )}
         </form>
       </div>
     </div>

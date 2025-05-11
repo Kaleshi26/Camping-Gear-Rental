@@ -1,15 +1,57 @@
+// frontend/src/pages/Contact.jsx
+import { useState } from 'react'; // Added useState for form handling
 import { FaPhoneAlt, FaMapMarkerAlt, FaEnvelope } from 'react-icons/fa'; // For icons
 import { motion } from 'framer-motion';
+import api from '../utils/api'; // Import api utility for HTTP requests
 
 // Import Assets
 import ContactBackground from '../assets/images/camping-background9.jpg'; // Background image
 import ContactSideImage from '../assets/images/contact-side-image.jpg'; // New 620x660 image
 
 function Contact() {
+  // State to manage form inputs
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+  });
+
+  // State to manage submission status
+  const [submissionStatus, setSubmissionStatus] = useState(null);
+  const [error, setError] = useState('');
+
   // Animation Variants (copied from Blog.jsx for consistency)
   const fadeIn = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
+  };
+
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmissionStatus(null);
+    setError('');
+
+    try {
+      const response = await api.post('/contact/submit', formData);
+      setSubmissionStatus(response.data.message);
+      // Reset form after successful submission
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to submit the form');
+    }
   };
 
   return (
@@ -53,7 +95,7 @@ function Contact() {
                     Your email address will not be published*
                   </p>
                 </div>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleSubmit}>
                   <div className="flex flex-col sm:flex-row sm:space-x-4">
                     <div className="sm:w-1/2 w-full mb-4 sm:mb-0">
                       <input
@@ -62,6 +104,9 @@ function Contact() {
                         name="name"
                         className="w-full px-4 py-3 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300 transform hover:scale-105 bg-white shadow-sm"
                         placeholder="Your Name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
                       />
                     </div>
                     <div className="sm:w-1/2 w-full">
@@ -71,6 +116,9 @@ function Contact() {
                         name="email"
                         className="w-full px-4 py-3 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300 transform hover:scale-105 bg-white shadow-sm"
                         placeholder="Email Address"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
                       />
                     </div>
                   </div>
@@ -79,8 +127,11 @@ function Contact() {
                       name="subject"
                       id="subject"
                       className="w-full px-4 py-3 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300 transform hover:scale-105 bg-white shadow-sm"
+                      value={formData.subject}
+                      onChange={handleInputChange}
+                      required
                     >
-                      <option disabled selected hidden value="">
+                      <option disabled value="">
                         Select Subject
                       </option>
                       <option value="Forest">Forest</option>
@@ -95,6 +146,9 @@ function Contact() {
                       className="w-full px-4 py-3 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300 transform hover:scale-105 bg-white shadow-sm"
                       placeholder="Type Message"
                       rows="5"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div>
@@ -105,6 +159,13 @@ function Contact() {
                       Submit Message
                     </button>
                   </div>
+                  {/* Display submission status or error */}
+                  {submissionStatus && (
+                    <p className="text-green-600 mt-4">{submissionStatus}</p>
+                  )}
+                  {error && (
+                    <p className="text-red-600 mt-4">{error}</p>
+                  )}
                 </form>
               </div>
 

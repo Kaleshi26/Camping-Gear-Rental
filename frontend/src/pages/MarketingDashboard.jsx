@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { FaBars, FaTimes, FaBullhorn, FaSignOutAlt, FaList, FaBell, FaCampground, FaUserCircle, FaStar } from 'react-icons/fa';
+import { FaBars, FaTimes, FaBullhorn, FaSignOutAlt, FaList, FaBell, FaCampground, FaUserCircle, FaStar, FaHandshake } from 'react-icons/fa';
 
 // Import the background image (assumed to be in assets)
 import campingBg from '../assets/camping-bg4.jpg';
@@ -14,11 +14,13 @@ function MarketingDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState('create');
   const [campaigns, setCampaigns] = useState([]);
-  const [discountUsers, setDiscountUsers] = useState([]); // Added: Track users with discounts
+  const [discountUsers, setDiscountUsers] = useState([]); // Track users with discounts
+  const [partnerships, setPartnerships] = useState([]); // Track partnership requests
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [details, setDetails] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [approvedPartnerships, setApprovedPartnerships] = useState([]); // Track approved partnerships
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -39,8 +41,19 @@ function MarketingDashboard() {
       }
     };
 
+    const fetchPartnerships = async () => {
+      try {
+        const response = await api.get('/partnership/partnerships');
+        console.log('Partnerships fetched:', response.data);
+        setPartnerships(response.data);
+      } catch (err) {
+        console.error('Error fetching partnerships:', err);
+      }
+    };
+
     fetchCampaigns();
     fetchDiscountUsers();
+    fetchPartnerships();
   }, []);
 
   const handleCreateCampaign = async (e) => {
@@ -82,18 +95,43 @@ function MarketingDashboard() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  // New function to handle approving a partnership
+  const handleApprovePartnership = (partnershipId) => {
+    setApprovedPartnerships((prev) => [...prev, partnershipId]);
+  };
+
+  // New function to download campaigns as CSV
+  const handleDownloadCSV = () => {
+    const csv = [
+      ['Campaign Name', 'Type', 'Details', 'Start Date'], // Header row
+      ...campaigns.map(campaign => [
+        campaign.name,
+        campaign.type,
+        campaign.details,
+        new Date(campaign.startDate).toLocaleDateString(),
+      ]),
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'marketing_campaigns.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const navLinks = [
     { name: 'Create Campaign', section: 'create', icon: <FaBullhorn className="text-xl" /> },
     { name: 'View Campaigns', section: 'view', icon: <FaList className="text-xl" /> },
-    { name: 'Discounts', section: 'discounts', icon: <FaStar className="text-xl" /> }, // Added Discounts section
+    { name: 'Discounts', section: 'discounts', icon: <FaStar className="text-xl" /> },
+    { name: 'View Partnerships', section: 'partnerships', icon: <FaHandshake className="text-xl" /> },
   ];
 
   return (
     <div
       className="flex min-h-screen bg-cover bg-center relative"
-      style={{
-        backgroundImage: `url(${campingBg})`,
-      }}
+      style={{ backgroundImage: `url(${campingBg})` }}
     >
       <div className="absolute inset-0 bg-black/30 z-0"></div>
 
@@ -141,9 +179,7 @@ function MarketingDashboard() {
       </div>
 
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 z-10 ${
-          isSidebarOpen ? 'ml-64' : 'ml-16'
-        }`}
+        className={`flex-1 flex flex-col transition-all duration-300 z-10 ${isSidebarOpen ? 'ml-64' : 'ml-16'}`}
       >
         <div className="bg-[#F5F5DC] shadow-lg p-4 flex justify-between items-center animate-fade-in-up">
           <div className="flex items-center space-x-2">
@@ -246,6 +282,12 @@ function MarketingDashboard() {
                       </button>
                     </div>
                   ))}
+                  <button
+                    onClick={handleDownloadCSV}
+                    className="mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 shadow-md"
+                  >
+                    Download CSV
+                  </button>
                 </div>
               )}
             </div>
@@ -275,6 +317,44 @@ function MarketingDashboard() {
                           </p>
                         </div>
                       ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeSection === 'partnerships' && (
+            <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
+              <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
+                <FaHandshake className="mr-2 text-[#2F4F4F]" /> Partnership Requests
+              </h2>
+              {partnerships.length === 0 ? (
+                <p className="text-gray-600">No partnership requests available.</p>
+              ) : (
+                <div className="space-y-4">
+                  {partnerships.map((partnership) => (
+                    <div key={partnership._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <p className="text-gray-800 font-semibold">Title: {partnership.title}</p>
+                      <p className="text-gray-600">Contact Number: {partnership.contactNumber}</p>
+                      <p className="text-gray-600">Partnership Type: {partnership.partnershipType}</p>
+                      <p className="text-gray-600">Message: {partnership.message}</p>
+                      <p className="text-gray-600">
+                        Submitted On: {new Date(partnership.createdAt).toLocaleDateString()}
+                      </p>
+                      {/* Show button only if not approved */}
+                      {!approvedPartnerships.includes(partnership._id) ? (
+                        <div className="flex space-x-2 mt-2">
+                          <button
+                            onClick={() => handleApprovePartnership(partnership._id)}
+                            className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-md"
+                          >
+                            Approve
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-green-600 mt-2">This request is approved</p>
+                      )}
                     </div>
                   ))}
                 </div>
