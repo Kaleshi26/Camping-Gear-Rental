@@ -16,6 +16,7 @@ import paymentRoutes from './routes/payment.js';
 import reviewRoutes from "./routes/review.js"; // Import the reviews routes
 import contactRoutes from './routes/contact.js'; //new line for contact
 import partnershipRoutes from './routes/partnership.js'; //new 2nd line for partnership
+import employeeRoutes from './routes/employees.js';
 
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/payment', paymentRoutes);
 app.use("/api/reviews", reviewRoutes); // Mount the reviews routes
 app.use('/api/contact', contactRoutes); // Mount the contact routes
 app.use('/api/partnership', partnershipRoutes);  //new for partnership
+app.use('/api/employees', employeeRoutes);
 
 
 

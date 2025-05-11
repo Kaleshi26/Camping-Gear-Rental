@@ -5,15 +5,18 @@ import MarketingCampaign from '../models/MarketingCampaign.js';
 
 const router = express.Router();
 
+// Get all marketing campaigns
 router.get('/campaigns', auth(['marketing_manager', 'admin']), async (req, res) => {
   try {
-    const campaigns = await MarketingCampaign.find();
+    const campaigns = await MarketingCampaign.find().sort({ startDate: -1 });
     res.json(campaigns);
   } catch (err) {
+    console.error('Error fetching marketing campaigns:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Create a marketing campaign
 router.post('/campaigns', auth(['marketing_manager']), async (req, res) => {
   const { name, type, details, startDate } = req.body;
 
@@ -26,15 +29,26 @@ router.post('/campaigns', auth(['marketing_manager']), async (req, res) => {
     await campaign.save();
     res.status(201).json(campaign);
   } catch (err) {
+    console.error('Error creating marketing campaign:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.delete('/campaigns/:id', auth(['marketing_manager']), async (req, res) => {
+// Check a marketing campaign
+router.post('/campaigns/:id/check', auth(['admin']), async (req, res) => {
   try {
-    await MarketingCampaign.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Campaign deleted' });
+    const campaign = await MarketingCampaign.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+    if (campaign.checked) {
+      return res.status(400).json({ message: 'Campaign already checked' });
+    }
+    campaign.checked = true;
+    await campaign.save();
+    res.json(campaign);
   } catch (err) {
+    console.error('Error checking campaign:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

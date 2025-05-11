@@ -8,7 +8,7 @@ import User from '../models/User.js';
 const router = express.Router();
 
 // Get all financial records
-router.get('/records', auth(['finance_manager']), async (req, res) => {
+router.get('/records', auth(['finance_manager', 'admin']), async (req, res) => {
   try {
     const records = await FinancialRecord.find().sort({ date: -1 });
     res.json(records);
@@ -51,7 +51,7 @@ router.delete('/records/:id', auth(['finance_manager']), async (req, res) => {
 });
 
 // Get all transactions
-router.get('/transactions', auth(['finance_manager']), async (req, res) => {
+router.get('/transactions', auth(['finance_manager', 'admin']), async (req, res) => {
   try {
     const transactions = await Transaction.find().sort({ paymentDate: -1 });
     res.json(transactions);

@@ -4,10 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { FaBars, FaTimes, FaBox, FaDollarSign, FaShoppingCart, FaBullhorn, FaSignOutAlt, FaChartLine, FaUsers, FaBell, FaCampground, FaUserCircle, FaFileExport } from 'react-icons/fa';
-import { motion } from 'framer-motion'; // Import framer-motion for animations
+import { motion } from 'framer-motion';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
-// Import the background image (assumed to be in assets)
-import campingBg from '../assets/camping-bg2.jpg'; // Adjust the path if necessary
+// Register Chart.js components for Pie chart
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Import the background image
+import campingBg from '../assets/camping-bg2.jpg';
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -22,25 +27,25 @@ function AdminDashboard() {
   });
   const [inventoryData, setInventoryData] = useState([]);
   const [financialRecords, setFinancialRecords] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [rentalData, setRentalData] = useState([]);
   const [marketingData, setMarketingData] = useState([]);
-  const [users, setUsers] = useState([]); // State for user management
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '' }); // State for new user form
+  const [employees, setEmployees] = useState([]);
+  const [newEmployee, setNewEmployee] = useState({ name: '', email: '', department: '', salary: '' });
+  const [financeError, setFinanceError] = useState('');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await api.get('/admin/stats');
-        // Assuming the API returns real data, update with actual values
         setStats({
-          totalRevenue: response.data.totalRevenue || 125000, // Example: Rs125,000
-          newOrders: response.data.newOrders || 42, // Example: 42 new orders
-          newUsers: response.data.newUsers || 15, // Example: 15 new users
-          totalUsers: response.data.totalUsers || 320, // Example: 320 total users
+          totalRevenue: response.data.totalRevenue || 125000,
+          newOrders: response.data.newOrders || 42,
+          newUsers: response.data.newUsers || 15,
+          totalUsers: response.data.totalUsers || 320,
         });
       } catch (err) {
         console.error('Error fetching stats:', err);
-        // Fallback values if API fails
         setStats({
           totalRevenue: 125000,
           newOrders: 42,
@@ -59,12 +64,30 @@ function AdminDashboard() {
       }
     };
 
-    const fetchFinancialRecords = async () => {
+    const fetchFinancialData = async () => {
       try {
-        const response = await api.get('/finance/records');
-        setFinancialRecords(response.data);
+        setFinanceError('');
+        const recordsResponse = await api.get('/finance/records');
+        console.log('Financial Records:', recordsResponse.data);
+        setFinancialRecords(recordsResponse.data || []);
+        const transactionsResponse = await api.get('/finance/transactions');
+        console.log('Transactions:', transactionsResponse.data);
+        setTransactions(transactionsResponse.data || []);
       } catch (err) {
-        console.error('Error fetching financial records:', err);
+        console.error('Error fetching financial data:', err);
+        let errorMsg = 'Failed to load financial data. Please try again later.';
+        if (err.response) {
+          console.error('Error Status:', err.response.status);
+          console.error('Error Data:', err.response.data);
+          if (err.response.status === 401 || err.response.status === 403) {
+            errorMsg = 'Unauthorized: Admin access required for financial data.';
+          } else if (err.response.status === 404) {
+            errorMsg = 'Financial data endpoints not found.';
+          }
+        }
+        setFinanceError(errorMsg);
+        setFinancialRecords([]);
+        setTransactions([]);
       }
     };
 
@@ -86,39 +109,29 @@ function AdminDashboard() {
       }
     };
 
-    const fetchUsers = async () => {
+    const fetchEmployees = async () => {
       try {
-        const response = await api.get('/users');
-        setUsers(response.data);
+        const response = await api.get('/employees');
+        setEmployees(response.data);
       } catch (err) {
-        console.error('Error fetching users:', err);
+        console.error('Error fetching employees:', err);
       }
     };
 
     fetchStats();
     fetchInventoryData();
-    fetchFinancialRecords();
+    fetchFinancialData();
     fetchRentalData();
     fetchMarketingData();
-    fetchUsers();
+    fetchEmployees();
   }, []);
 
-  // Delete Functions for Each Section
   const handleDeleteInventory = async (id) => {
     try {
       await api.delete(`/products/${id}`);
       setInventoryData(inventoryData.filter((item) => item._id !== id));
     } catch (err) {
       console.error('Error deleting inventory item:', err);
-    }
-  };
-
-  const handleDeleteFinancialRecord = async (id) => {
-    try {
-      await api.delete(`/finance/records/${id}`);
-      setFinancialRecords(financialRecords.filter((item) => item._id !== id));
-    } catch (err) {
-      console.error('Error deleting financial record:', err);
     }
   };
 
@@ -131,35 +144,86 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteMarketingCampaign = async (id) => {
+  const handleCheckCampaign = async (id) => {
     try {
-      await api.delete(`/marketing/campaigns/${id}`);
-      setMarketingData(marketingData.filter((item) => item._id !== id));
+      const response = await api.post(`/marketing/campaigns/${id}/check`);
+      setMarketingData(
+        marketingData.map((campaign) =>
+          campaign._id === id ? { ...campaign, checked: true } : campaign
+        )
+      );
     } catch (err) {
-      console.error('Error deleting marketing campaign:', err);
+      console.error('Error checking campaign:', err);
+      alert('Failed to check campaign');
     }
   };
 
-  // Create User Function
-  const handleCreateUser = async (e) => {
+  const handleCreateEmployee = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/users', newUser);
-      setUsers([...users, response.data]);
-      setNewUser({ name: '', email: '', password: '' }); // Reset form
+      const response = await api.post('/employees', {
+        ...newEmployee,
+        salary: Number(newEmployee.salary),
+      });
+      setEmployees([...employees, response.data]);
+      setNewEmployee({ name: '', email: '', department: '', salary: '' });
     } catch (err) {
-      console.error('Error creating user:', err);
+      console.error('Error creating employee:', err);
+      alert('Failed to create employee');
     }
   };
 
-  // Delete User Function
-  const handleDeleteUser = async (id) => {
+  const handleDeleteEmployee = async (id) => {
     try {
-      await api.delete(`/users/${id}`);
-      setUsers(users.filter((user) => user._id !== id));
+      await api.delete(`/employees/${id}`);
+      setEmployees(employees.filter((employee) => employee._id !== id));
     } catch (err) {
-      console.error('Error deleting user:', err);
+      console.error('Error deleting employee:', err);
     }
+  };
+
+  const handleExportStatsCSV = () => {
+    const headers = ['Metric', 'Value'];
+    const csvRows = [
+      headers.join(','),
+      ['Total Revenue', `Rs${stats.totalRevenue.toLocaleString()}`],
+      ['New Orders', stats.newOrders],
+      ['New Users', stats.newUsers],
+      ['Total Users', stats.totalUsers],
+    ];
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'admin-stats.csv');
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportEmployeesCSV = () => {
+    const headers = ['Name', 'Email', 'Department', 'Salary'];
+    const csvRows = [
+      headers.join(','),
+      ...employees.map((employee) =>
+        [
+          `"${employee.name}"`,
+          `"${employee.email}"`,
+          `"${employee.department}"`,
+          `Rs${employee.salary.toLocaleString()}`
+        ].join(',')
+      ),
+    ];
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'employees.csv');
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleLogout = () => {
@@ -180,17 +244,38 @@ function AdminDashboard() {
     { name: 'User Management', section: 'users', icon: <FaUsers className="text-xl" /> },
   ];
 
+  const pieChartData = {
+    labels: ['Non-Refunded Transactions', 'Refunded Transactions'],
+    datasets: [
+      {
+        data: [
+          transactions.filter((t) => !t.refunded).length,
+          transactions.filter((t) => t.refunded).length,
+        ],
+        backgroundColor: ['#2F4F4F', '#8B4513'],
+        borderColor: ['#1A3C34', '#5A2D0C'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const pieChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: {
+        display: true,
+        text: 'Transaction Status Distribution',
+      },
+    },
+  };
+
   return (
     <div
       className="flex min-h-screen bg-cover bg-center relative"
-      style={{
-        backgroundImage: `url(${campingBg})`, // Camping background image
-      }}
+      style={{ backgroundImage: `url(${campingBg})` }}
     >
-      {/* Overlay for readability */}
       <div className="absolute inset-0 bg-black/30 z-0"></div>
-
-      {/* Sidebar with Transparency and Slide-In Animation */}
       <div
         className={`fixed top-0 left-0 h-full bg-[#2F4F4F]/80 backdrop-blur-md text-white transition-all duration-300 z-20 animate-slide-in-left ${
           isSidebarOpen ? 'w-64' : 'w-16'
@@ -207,7 +292,6 @@ function AdminDashboard() {
             {isSidebarOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
           </button>
         </div>
-
         <nav className="mt-6">
           {navLinks.map((link) => (
             <button
@@ -222,7 +306,6 @@ function AdminDashboard() {
             </button>
           ))}
         </nav>
-
         <div className="absolute bottom-0 w-full">
           <button
             onClick={handleLogout}
@@ -233,14 +316,11 @@ function AdminDashboard() {
           </button>
         </div>
       </div>
-
-      {/* Main Content */}
       <div
         className={`flex-1 flex flex-col transition-all duration-300 z-10 ${
           isSidebarOpen ? 'ml-64' : 'ml-16'
         }`}
       >
-        {/* Top Bar with Fade-In Animation */}
         <div className="bg-[#F5F5DC] shadow-lg p-4 flex justify-between items-center animate-fade-in-up">
           <div className="flex items-center space-x-2">
             <FaCampground className="text-2xl text-[#2F4F4F]" />
@@ -262,13 +342,9 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Dashboard Content */}
         <div className="flex-1 p-6">
-          {/* Overview Section */}
           {activeSection === 'overview' && (
             <div>
-              {/* Stats Cards with Animations */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <motion.div
                   className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl"
@@ -294,14 +370,13 @@ function AdminDashboard() {
                       className="bg-[#2F4F4F] h-2.5 rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${(stats.totalRevenue / 200000) * 100}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
                     ></motion.div>
                   </div>
                   <p className="text-gray-500 text-sm mt-2">
                     Change: {((stats.totalRevenue / 200000) * 100).toFixed(1)}%
                   </p>
                 </motion.div>
-
                 <motion.div
                   className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl"
                   initial={{ opacity: 0, y: 50 }}
@@ -326,14 +401,13 @@ function AdminDashboard() {
                       className="bg-[#8B4513] h-2.5 rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${(stats.newOrders / 100) * 100}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
                     ></motion.div>
                   </div>
                   <p className="text-gray-500 text-sm mt-2">
                     Change: {((stats.newOrders / 100) * 100).toFixed(1)}%
                   </p>
                 </motion.div>
-
                 <motion.div
                   className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl"
                   initial={{ opacity: 0, y: 50 }}
@@ -358,14 +432,13 @@ function AdminDashboard() {
                       className="bg-[#2F4F4F] h-2.5 rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${(stats.newUsers / 50) * 100}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
                     ></motion.div>
                   </div>
                   <p className="text-gray-500 text-sm mt-2">
                     Change: {((stats.newUsers / 50) * 100).toFixed(1)}%
                   </p>
                 </motion.div>
-
                 <motion.div
                   className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl"
                   initial={{ opacity: 0, y: 50 }}
@@ -390,7 +463,7 @@ function AdminDashboard() {
                       className="bg-[#8B4513] h-2.5 rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${(stats.totalUsers / 500) * 100}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
                     ></motion.div>
                   </div>
                   <p className="text-gray-500 text-sm mt-2">
@@ -398,33 +471,32 @@ function AdminDashboard() {
                   </p>
                 </motion.div>
               </div>
-
-              {/* Charts and Summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-[#8B4513] flex items-center">
-                      <FaChartLine className="mr-2 text-[#2F4F4F]" /> User Statistics
+                      <FaChartLine className="mr-2 text-[#2F4F4F]" /> Transaction Statistics
                     </h3>
                     <div className="flex space-x-2">
-                      <button className="btn-camping">
-                        <FaFileExport className="inline mr-2" /> Export
+                      <button onClick={handleExportStatsCSV} className="btn-camping">
+                        <FaFileExport className="inline mr-2" /> Export Stats
                       </button>
                       <button className="bg-[#2F4F4F] text-white py-2 px-4 rounded-lg hover:bg-[#1A3C34] transition-all duration-300 transform hover:scale-105 shadow-md">
                         Filter
                       </button>
                     </div>
                   </div>
-                  <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <FaChartLine className="text-gray-400 text-4xl" />
-                    <p className="text-gray-500 ml-2">Chart Placeholder (Add Chart.js or similar)</p>
+                  <div className="h-64">
+                    <Pie data={pieChartData} options={pieChartOptions} />
                   </div>
                 </div>
-
                 <div className="bg-[#2F4F4F]/90 backdrop-blur-sm text-white p-6 rounded-xl shadow-xl animate-bounce-in">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">Total Revenue</h3>
-                    <button className="bg-[#F5F5DC] text-[#2F4F4F] px-4 py-2 rounded-lg hover:bg-[#E5E5B2] transition-all duration-300">
+                    <button
+                      onClick={handleExportStatsCSV}
+                      className="bg-[#F5F5DC] text-[#2F4F4F] px-4 py-2 rounded-lg hover:bg-[#E5E5B2] transition-all duration-300"
+                    >
                       <FaFileExport className="inline mr-2" /> Export
                     </button>
                   </div>
@@ -434,8 +506,6 @@ function AdminDashboard() {
               </div>
             </div>
           )}
-
-          {/* Inventory Data Section */}
           {activeSection === 'inventory' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
@@ -457,49 +527,55 @@ function AdminDashboard() {
                       <p className="text-gray-600">Category: {product.category}</p>
                       <p className="text-gray-600">Stock: {product.stock}</p>
                       <p className="text-gray-600">Status: {product.status || 'Available'}</p>
-                      <button
-                        onClick={() => handleDeleteInventory(product._id)}
-                        className="mt-2 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           )}
-
-          {/* Financial Records Section */}
           {activeSection === 'finance' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
                 <FaDollarSign className="mr-2 text-[#2F4F4F]" /> Financial Records
               </h2>
-              {financialRecords.length === 0 ? (
-                <p className="text-gray-600">No financial records available.</p>
+              {financeError ? (
+                <p className="text-red-600">{financeError}</p>
+              ) : financialRecords.length === 0 && transactions.length === 0 ? (
+                <p className="text-gray-600">No financial records or transactions available.</p>
               ) : (
                 <div className="space-y-4">
                   {financialRecords.map((record) => (
                     <div key={record._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
                       <p className="text-gray-800 font-semibold">Type: {record.type}</p>
-                      <p className="text-gray-600">Amount: Rs{record.amount}</p>
+                      <p className="text-gray-600">Amount: Rs{record.amount.toLocaleString()}</p>
                       <p className="text-gray-600">Description: {record.description}</p>
                       <p className="text-gray-600">Date: {new Date(record.date).toLocaleDateString()}</p>
-                      <button
-                        onClick={() => handleDeleteFinancialRecord(record._id)}
-                        className="mt-2 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
+                    </div>
+                  ))}
+                  {transactions.map((transaction) => (
+                    <div key={transaction._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <p className="text-gray-800 font-semibold">Type: Transaction (Revenue)</p>
+                      <p className="text-gray-600">Customer: {transaction.customerName}</p>
+                      <p className="text-gray-600">Email: {transaction.customerEmail}</p>
+                      <p className="text-gray-600">Amount: Rs{transaction.totalAmount.toLocaleString()}</p>
+                      <p className="text-gray-600">Date: {new Date(transaction.paymentDate).toLocaleDateString()}</p>
+                      {transaction.items && transaction.items.length > 0 && (
+                        <p className="text-gray-600">
+                          Items: {transaction.items.map((item) => `${item.name} (Qty: ${item.quantity})`).join(', ')}
+                        </p>
+                      )}
+                      {transaction.refunded && (
+                        <p className="text-red-500">
+                          Refunded: {transaction.refundReason} on{' '}
+                          {new Date(transaction.refundDate).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
           )}
-
-          {/* Rental Data Section */}
           {activeSection === 'rentals' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
@@ -528,8 +604,6 @@ function AdminDashboard() {
               )}
             </div>
           )}
-
-          {/* Marketing Data Section */}
           {activeSection === 'marketing' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
@@ -545,36 +619,36 @@ function AdminDashboard() {
                       <p className="text-gray-600">Type: {campaign.type}</p>
                       <p className="text-gray-600">Details: {campaign.details}</p>
                       <p className="text-gray-600">Start Date: {new Date(campaign.startDate).toLocaleDateString()}</p>
-                      <button
-                        onClick={() => handleDeleteMarketingCampaign(campaign._id)}
-                        className="mt-2 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {campaign.checked ? (
+                        <p className="text-green-600 font-semibold mt-2">Checked by Admin</p>
+                      ) : (
+                        <button
+                          onClick={() => handleCheckCampaign(campaign._id)}
+                          className="mt-2 w-full bg-[#2F4F4F] text-white py-2 rounded-lg hover:bg-[#1A3C34] transition-colors"
+                        >
+                          Check
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
           )}
-
-          {/* User Management Section */}
           {activeSection === 'users' && (
             <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
               <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
-                <FaUsers className="mr-2 text-[#2F4F4F]" /> User Management
+                <FaUsers className="mr-2 text-[#2F4F4F]" /> Employee Management
               </h2>
-
-              {/* Create User Form */}
               <div className="mb-8">
-                <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Create New User</h3>
-                <form onSubmit={handleCreateUser} className="space-y-4">
+                <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Create New Employee</h3>
+                <form onSubmit={handleCreateEmployee} className="space-y-4">
                   <div>
                     <label className="block text-gray-600 mb-1">Name</label>
                     <input
                       type="text"
-                      value={newUser.name}
-                      onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                      value={newEmployee.name}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
                       className="w-full p-2 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]"
                       required
                     />
@@ -583,18 +657,33 @@ function AdminDashboard() {
                     <label className="block text-gray-600 mb-1">Email</label>
                     <input
                       type="email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      value={newEmployee.email}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
                       className="w-full p-2 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-600 mb-1">Password</label>
+                    <label className="block text-gray-600 mb-1">Department</label>
+                    <select
+                      value={newEmployee.department}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
+                      className="w-full p-2 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]"
+                      required
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Inventory">Inventory</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Reservation">Reservation</option>
+                      <option value="Marketing">Marketing</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-600 mb-1">Salary (Rs)</label>
                     <input
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      type="number"
+                      value={newEmployee.salary}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, salary: e.target.value })}
                       className="w-full p-2 border border-[#8B4513] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]"
                       required
                     />
@@ -603,23 +692,31 @@ function AdminDashboard() {
                     type="submit"
                     className="w-full bg-[#2F4F4F] text-white py-2 rounded-lg hover:bg-[#1A3C34] transition-colors"
                   >
-                    Create User
+                    Create Employee
                   </button>
                 </form>
               </div>
-
-              {/* User List */}
-              <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Existing Users</h3>
-              {users.length === 0 ? (
-                <p className="text-gray-600">No users available.</p>
+              <h3 className="text-lg font-semibold text-[#8B4513] mb-4">Existing Employees</h3>
+              <div className="mb-4">
+                <button
+                  onClick={handleExportEmployeesCSV}
+                  className="bg-[#2F4F4F] text-white py-2 px-4 rounded-lg hover:bg-[#1A3C34] transition-all duration-300"
+                >
+                  <FaFileExport className="inline mr-2" /> Export Employees
+                </button>
+              </div>
+              {employees.length === 0 ? (
+                <p className="text-gray-600">No employees available.</p>
               ) : (
                 <div className="space-y-4">
-                  {users.map((user) => (
-                    <div key={user._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
-                      <p className="text-gray-800 font-semibold">Name: {user.name}</p>
-                      <p className="text-gray-600">Email: {user.email}</p>
+                  {employees.map((employee) => (
+                    <div key={employee._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <p className="text-gray-800 font-semibold">Name: {employee.name}</p>
+                      <p className="text-gray-600">Email: {employee.email}</p>
+                      <p className="text-gray-600">Department: {employee.department}</p>
+                      <p className="text-gray-600">Salary: Rs{employee.salary.toLocaleString()}</p>
                       <button
-                        onClick={() => handleDeleteUser(user._id)}
+                        onClick={() => handleDeleteEmployee(employee._id)}
                         className="mt-2 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
                       >
                         Delete
@@ -631,8 +728,6 @@ function AdminDashboard() {
             </div>
           )}
         </div>
-
-        {/* Minimal Footer */}
         <footer className="bg-[#2F4F4F]/80 backdrop-blur-md text-white p-4 text-center">
           <p>© 2025 CampEase. All rights reserved.</p>
         </footer>

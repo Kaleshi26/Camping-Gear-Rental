@@ -6,6 +6,7 @@ const marketingCampaignSchema = new mongoose.Schema({
   type: { type: String, required: true },
   details: { type: String, required: true },
   startDate: { type: Date, required: true },
+  checked: { type: Boolean, default: false }, // Added to track admin check
 });
 
 export default mongoose.model('MarketingCampaign', marketingCampaignSchema);
