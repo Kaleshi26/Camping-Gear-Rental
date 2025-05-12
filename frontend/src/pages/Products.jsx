@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import api from '../utils/api';
 import { motion } from 'framer-motion';
 
-// Sample featured product images for slideshow (replace with actual paths if available)
+// Sample featured product images for slideshow
 import FeaturedProduct1 from '../assets/images/fr01.jpg';
 import FeaturedProduct2 from '../assets/images/fr02.jpg';
 import FeaturedProduct3 from '../assets/images/fr03.jpg';
@@ -69,7 +69,7 @@ function Products() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === featuredImages.length - 1 ? 0 : prev + 1));
-    }, 5000); // Change image every 5 seconds
+    }, 5000);
     return () => clearInterval(interval);
   }, [featuredImages.length]);
 
@@ -80,7 +80,7 @@ function Products() {
       {/* Spacer for fixed header */}
       <div className="h-20"></div>
 
-      {/* Basic Slideshow (3 Images, No Text) */}
+      {/* Basic Slideshow */}
       <section className="w-full h-96 overflow-hidden">
         <img
           src={featuredImages[currentSlide]}
@@ -107,7 +107,6 @@ function Products() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Search */}
           <div className="relative w-full md:w-1/3">
             <input
               type="text"
@@ -132,8 +131,6 @@ function Products() {
               />
             </svg>
           </div>
-
-          {/* Category Filter */}
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -146,8 +143,6 @@ function Products() {
               </option>
             ))}
           </select>
-
-          {/* Price Filter */}
           <select
             value={priceFilter}
             onChange={(e) => setPriceFilter(e.target.value)}
@@ -190,14 +185,22 @@ function Products() {
                   <h3 className="text-xl font-semibold text-[#8B4513]">{product.name}</h3>
                   <p className="text-[#1A3C34] mt-1">Rs{product.price} / day</p>
                   <p className="text-gray-600 text-sm mt-2">Category: {product.category}</p>
+                  <p className={`text-sm font-medium mt-2 ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {product.stock > 0 ? 'Available' : 'No Units Available'}
+                  </p>
                   <motion.button
                     onClick={() => {
                       console.log('Add to Cart clicked for:', product);
                       addToCart(product);
                     }}
-                    className="mt-4 w-full bg-[#1A3C34] text-white py-2 rounded-lg hover:bg-[#2F4F4F] transition-colors"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    className={`mt-4 w-full py-2 rounded-lg text-white transition-colors ${
+                      product.stock > 0
+                        ? 'bg-[#1A3C34] hover:bg-[#2F4F4F]'
+                        : 'bg-gray-400 cursor-not-allowed'
+                    }`}
+                    whileHover={{ scale: product.stock > 0 ? 1.1 : 1 }}
+                    whileTap={{ scale: product.stock > 0 ? 0.95 : 1 }}
+                    disabled={product.stock === 0}
                   >
                     Add to Cart
                   </motion.button>
