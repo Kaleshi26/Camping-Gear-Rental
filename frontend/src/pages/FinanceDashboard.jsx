@@ -30,6 +30,12 @@ function FinanceDashboard() {
   const [refundReason, setRefundReason] = useState('');
   const [filterType, setFilterType] = useState('All'); // State for filtering records
 
+  // New States for Budget Allocation
+  const [budgets, setBudgets] = useState([]);
+  const [department, setDepartment] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetDescription, setBudgetDescription] = useState('');
+
   useEffect(() => {
     const fetchRecords = async () => {
       try {
@@ -49,8 +55,19 @@ function FinanceDashboard() {
       }
     };
 
+    // Fetch budgets
+    const fetchBudgets = async () => {
+      try {
+        const response = await api.get('/finance/budgets');
+        setBudgets(response.data);
+      } catch (err) {
+        console.error('Error fetching budgets:', err);
+      }
+    };
+
     fetchRecords();
     fetchTransactions();
+    fetchBudgets();
   }, []);
 
   const handleAddRecord = async (e) => {
@@ -186,6 +203,27 @@ function FinanceDashboard() {
     }
   };
 
+  const handleAddBudget = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/finance/budgets', {
+        department,
+        amount: Number(budgetAmount),
+        description: budgetDescription,
+        date: new Date(),
+      });
+      const response = await api.get('/finance/budgets');
+      setBudgets(response.data);
+      setDepartment('');
+      setBudgetAmount('');
+      setBudgetDescription('');
+      alert('Budget allocated successfully');
+    } catch (err) {
+      console.error('Error adding budget:', err);
+      alert('Failed to allocate budget');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/signin');
@@ -202,6 +240,7 @@ function FinanceDashboard() {
     { name: 'Daily Report', section: 'daily-report', icon: <FaFileAlt className="text-xl" /> },
     { name: 'Monthly Report', section: 'monthly-report', icon: <FaChartBar className="text-xl" /> },
     { name: 'Refunds', section: 'refunds', icon: <FaUndo className="text-xl" /> },
+    { name: 'Budget Allocation', section: 'budget-allocation', icon: <FaWallet className="text-xl" /> }, // New section
   ];
 
   // Filter records based on selected type
@@ -666,6 +705,66 @@ function FinanceDashboard() {
                         </div>
                       </div>
                     ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Budget Allocation Section */}
+          {activeSection === 'budget-allocation' && (
+            <div className="bg-[#F5F5DC]/90 backdrop-blur-sm p-6 rounded-xl shadow-xl animate-bounce-in">
+              <h2 className="text-2xl font-semibold text-[#8B4513] mb-6 flex items-center">
+                <FaWallet className="mr-2 text-[#2F4F4F]" /> Budget Allocation
+              </h2>
+              <form onSubmit={handleAddBudget} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-[#8B4513] mb-2">Department</label>
+                  <select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Inventory">Inventory</option>
+                    <option value="Operations">Operations</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8B4513] mb-2">Amount (Rs)</label>
+                  <input
+                    type="number"
+                    value={budgetAmount}
+                    onChange={(e) => setBudgetAmount(e.target.value)}
+                    className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8B4513] mb-2">Description</label>
+                  <textarea
+                    value={budgetDescription}
+                    onChange={(e) => setBudgetDescription(e.target.value)}
+                    className="mt-1 block w-full px-4 py-2 border border-[#8B4513] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#2F4F4F] transition-all duration-300"
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn-camping w-full">
+                  Allocate Budget
+                </button>
+              </form>
+              {budgets.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <h3 className="text-lg font-semibold text-[#8B4513]">Allocated Budgets</h3>
+                  {budgets.map((budget) => (
+                    <div key={budget._id} className="border border-[#8B4513] p-4 rounded-lg bg-white shadow-sm">
+                      <p className="text-gray-800 font-semibold">Department: {budget.department}</p>
+                      <p className="text-gray-600">Amount: Rs{budget.amount}</p>
+                      <p className="text-gray-600">Description: {budget.description}</p>
+                      <p className="text-gray-600">Date: {new Date(budget.date).toLocaleDateString()}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

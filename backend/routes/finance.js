@@ -4,6 +4,7 @@ import auth from '../middleware/auth.js';
 import FinancialRecord from '../models/FinancialRecord.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
+import Budget from '../models/Budget.js'; // Import new Budget model
 
 const router = express.Router();
 
@@ -163,6 +164,35 @@ router.post('/refund/:transactionId', auth(['finance_manager']), async (req, res
     res.json({ message: 'Refund processed successfully' });
   } catch (err) {
     console.error('Error processing refund:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all budgets
+router.get('/budgets', auth(['finance_manager']), async (req, res) => {
+  try {
+    const budgets = await Budget.find().sort({ date: -1 });
+    res.json(budgets);
+  } catch (err) {
+    console.error('Error fetching budgets:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add budget
+router.post('/budgets', auth(['finance_manager']), async (req, res) => {
+  const { department, amount, description, date } = req.body;
+
+  if (!department || !amount || !description) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    const budget = new Budget({ department, amount, description, date });
+    await budget.save();
+    res.status(201).json(budget);
+  } catch (err) {
+    console.error('Error adding budget:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
