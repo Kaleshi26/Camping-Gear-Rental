@@ -34,7 +34,7 @@ router.post('/campaigns', auth(['marketing_manager']), async (req, res) => {
   }
 });
 
-// Check a marketing campaign
+// Check (approve) a marketing campaign
 router.post('/campaigns/:id/check', auth(['admin']), async (req, res) => {
   try {
     const campaign = await MarketingCampaign.findById(req.params.id);
@@ -49,6 +49,20 @@ router.post('/campaigns/:id/check', auth(['admin']), async (req, res) => {
     res.json(campaign);
   } catch (err) {
     console.error('Error checking campaign:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete a marketing campaign
+router.delete('/campaigns/:id', auth(['marketing_manager', 'admin']), async (req, res) => {
+  try {
+    const deleted = await MarketingCampaign.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+    res.json({ message: 'Campaign deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting campaign:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
