@@ -147,7 +147,7 @@ const Offers = () => {
               </p>
               <div className="mt-4">
                 <Link
-                  to="/signin"
+                  to="https://www.facebook.com/share/1Ax4ejbss3/"
                   className="bg-white text-[#4A3D2E] border border-[#4A3D2E] py-1.5 px-3 rounded-lg font-semibold hover:bg-[#D4A017] hover:text-white hover:border-[#D4A017] transition duration-300 text-sm md:text-base"
                 >
                   Try Now
