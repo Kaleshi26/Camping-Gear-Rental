@@ -17,7 +17,7 @@ const Offers = () => {
     {
       id: 1,
       image: image1,
-      title: "Product 1",
+      title: "6 Person Camping Tent ",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
       link: "/products",
@@ -25,7 +25,7 @@ const Offers = () => {
     {
       id: 2,
       image: image2,
-      title: "Product 2",
+      title: "Modern metal chair ",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
       link: "/products",
@@ -33,7 +33,7 @@ const Offers = () => {
     {
       id: 3,
       image: image3,
-      title: "Product 3",
+      title: "2 Person Camping Tent ",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
       link: "/products",
@@ -41,7 +41,7 @@ const Offers = () => {
     {
       id: 4,
       image: image4,
-      title: "Product 4",
+      title: "4-8 Persons Waterproof Camping Tent",
       description:
         "A card component has a figure, a body part, and inside the body, there are title and actions parts.",
       link: "/products",
