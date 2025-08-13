@@ -1,5 +1,10 @@
 # 🏕 CampEase – Online Camping Gear Rental Management System
 
+![MERN Stack](https://img.shields.io/badge/Stack-MERN-green?style=for-the-badge&logo=mongodb&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Completed-success?style=for-the-badge)
+![Contributions](https://img.shields.io/badge/Contributions-Welcome-orange?style=for-the-badge)
+
 **CampEase** is a full-stack MERN (MongoDB, Express.js, React.js, Node.js) web application designed to modernize and streamline the camping gear rental process.
 It provides real-time inventory management, secure booking, integrated payments, and role-based access for customers, staff, and admins.
 
