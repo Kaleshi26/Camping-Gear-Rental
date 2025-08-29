@@ -145,10 +145,16 @@ It provides real-time inventory management, secure booking, integrated payments,
 
 
 <p align="center">
-  <img src="screenshot/analysis.png" alt="analysis" width="250" />
-  <img src="screenshot/budget.png" alt="budget" width="250" />
-  <img src="screenshot/categories.png" alt="categories" width="250" />
-  <img src="screenshot/backup .png" alt="backup " width="250" />
+  <img src="screenshots/admin.jpg" alt="admin" width="300" height="400" />
+  <img src="screenshots/finance01.jpg" alt="finance01" width="500" height="500" />
+  <img src="screenshots/finance2.jpg" alt="finance2" width="500" height="500" />
+  <img src="screenshots/inventry.jpg" alt="inventry" width="500" height="500" />
+</p>
+
+<p align="center">
+  <img src="screenshots/create account.jpg" alt="create account" width="300" height="400" />
+  <img src="screenshots/signin.jpg" alt="signin" width="500" height="500" />
+  <img src="screenshots/product.jpg" alt="product" width="500" height="500" />
 </p>
 
 
