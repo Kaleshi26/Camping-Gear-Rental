@@ -158,4 +158,8 @@ It provides real-time inventory management, secure booking, integrated payments,
 </p>
 
 
-
+<p align="center">
+  <img src="screenshots/contactus.jpg" alt="contactus" width="300" height="400" />
+  <img src="screenshots/blog.jpg" alt="blog" width="500" height="500" />
+  <img src="screenshots/cart.jpg" alt="cart" width="500" height="500" />
+</p>
