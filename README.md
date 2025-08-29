@@ -127,9 +127,9 @@ It provides real-time inventory management, secure booking, integrated payments,
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="screenshot/records.png" alt="records" width="250" />
-  <img src="screenshot/add trans.png" alt="add trans" width="250" />
-  <img src="screenshot/accounts.png" alt="accounts" width="250" />
+  <img src="screenshot/home1.JPG" alt="home1" width="500" />
+  <img src="screenshot/home2.JPG" alt="home2" width="500" />
+  <img src="screenshot/home3.JPG" alt="accounts" width="500" />
 </p>
 <p align="center">
   <img src="screenshot/analysis.png" alt="analysis" width="250" />
