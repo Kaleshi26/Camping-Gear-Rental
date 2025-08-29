@@ -110,7 +110,6 @@ It provides real-time inventory management, secure booking, integrated payments,
 
 * **Unit Testing** – Verified core functionalities (login, booking, payment, etc.)
 * **Integration Testing** – Checked module interactions
-* **UAT (User Acceptance Testing)** – Approved by stakeholders after real-world trials
 * ✅ All critical workflows tested and passed
 
 
@@ -123,6 +122,21 @@ It provides real-time inventory management, secure booking, integrated payments,
 /routes         # API endpoints
 /controllers    # Business logic
 /config         # Database & environment configs
+
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshot/records.png" alt="records" width="250" />
+  <img src="screenshot/add trans.png" alt="add trans" width="250" />
+  <img src="screenshot/accounts.png" alt="accounts" width="250" />
+</p>
+<p align="center">
+  <img src="screenshot/analysis.png" alt="analysis" width="250" />
+  <img src="screenshot/budget.png" alt="budget" width="250" />
+  <img src="screenshot/categories.png" alt="categories" width="250" />
+  <img src="screenshot/backup .png" alt="backup " width="250" />
+</p>
 
 
 
