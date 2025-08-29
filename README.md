@@ -154,7 +154,7 @@ It provides real-time inventory management, secure booking, integrated payments,
 <p align="center">
   <img src="screenshots/create account.jpg" alt="create account" width="300" height="400" />
   <img src="screenshots/signin.jpg" alt="signin" width="500" height="500" />
-  <img src="screenshots/product.jpg" alt="product" width="500" height="500" />
+  <img src="screenshots/product.jpg" alt="product" width="400" height="800" />
 </p>
 
 
